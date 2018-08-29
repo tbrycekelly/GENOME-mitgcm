@@ -1,0 +1,24 @@
+# ======================
+# Offline Input Data Sets
+# =====================
+#
+# Edited by: Taylor Shropshire 6.23.2016
+#
+#
+ &OFFLINE_PARM01
+ UvelFile = './input_off/uvel/U',
+ VvelFile = './input_off/vvel/V',
+ WvelFile = './input_off/wvel/W',
+ ThetFile = './input_off/tmp/T',
+ SaltFile = './input_off/sal/S',
+ &end
+#
+ &OFFLINE_PARM02
+ offlineIter0 = 0,
+ deltaToffline = 3600.0,
+ offlineForcingPeriod = 86400.0,
+ offlineForcingCycle = 31449600.0,
+# Note offlineForcingCycle must equal num of flow field files times offlineForcingPeriod
+# minus offlineForcing Period. Example 365 files times 86400 = 31536000 minus 86400 = 31449600
+ &end
+#

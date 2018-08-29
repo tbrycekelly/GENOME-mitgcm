@@ -1,0 +1,24 @@
+# ===================================
+# # Tracer advection specific parameters
+# ===================================
+#
+# Edited by: Taylor Shropshire 5.4.2016
+#
+#
+#
+&PTRACERS_PARM01
+ PTRACERS_numInUse = 11,
+ PTRACERS_Iter0 = 0,
+ PTRACERS_monitorFreq = 86400.0,
+ PTRACERS_names(1)='NO',
+ PTRACERS_names(2)='NH',
+ PTRACERS_names(3)='SI',
+ PTRACERS_names(4)='DON',
+ PTRACERS_names(5)='PON',
+ PTRACERS_names(6)='OP',
+ PTRACERS_names(7)='sp',
+ PTRACERS_names(8)='lp',
+ PTRACERS_names(9)='sz',
+ PTRACERS_names(10)='lz',
+ PTRACERS_names(11)='pz',
+&end

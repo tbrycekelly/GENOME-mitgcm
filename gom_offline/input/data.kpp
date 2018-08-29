@@ -1,0 +1,5 @@
+# KPP parameters
+ &KPP_PARM01
+ KPPwriteState = .TRUE.,
+ kpp dumpFreq = 86400.0, 
+ &end

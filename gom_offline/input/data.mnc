@@ -1,0 +1,12 @@
+# Create netCDF files
+#
+# Edited By: Taylor Shropshire 6/23/2016
+ &MNC_01
+ mnc_use_outdir = .TRUE.,
+ mnc_outdir_str = '../expts/expt_', 
+ monitor_mnc = .FALSE.,
+ snapshot_mnc = .TRUE.,
+ pickup_write_mnc = .FALSE.,
+ pickup_read_mnc = .FALSE.,
+ &end
+#

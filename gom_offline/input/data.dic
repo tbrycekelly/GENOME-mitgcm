@@ -1,0 +1,23 @@
+# DIC parameters 
+ &ABIOTIC_PARMS
+ &end
+
+ &BIOTIC_PARMS
+ &end
+
+ &DIC_FORCING
+# ---- File ---- %
+ light_file = 'light_data_1993_dailyavg.bin',
+ river_file = 'river_data.bin',
+
+# --- Daily Averaged Light --- %
+ DIC_forcingPeriod = 86400.0,
+ DIC_forcingCycle = 31449600.0,
+ DIC_forcingPeriod2 = 2592000.0,
+ DIC_forcingCycle2 = 28512000.0, 
+
+# --- Hourly Light --- %
+# DIC_forcingPeriod = 3600.0,
+# DIC_forcingCycle = 31528800.0,
+
+ &end
