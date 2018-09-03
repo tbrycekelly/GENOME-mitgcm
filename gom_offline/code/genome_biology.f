@@ -1,10 +1,17 @@
-      subroutine trcupd_100(m,n, ibio)
-      use mod_xc  ! HYCOM communication interface
+      subroutine genome_biology(i,j)
       implicit none
-      include 'common_blocks.h'
 
-      integer m
-      integer n
+#include "SIZE.h"
+#include "EEPARAMS.h"
+#include "PARAMS.h"
+#include "GRID.h"
+#include "DYNVARS.h"
+#include "PTRACERS_SIZE.h"
+#include "PTRACERS_PARAMS.h"
+#include "PTRACERS_FIELDS.h"
+
+      integer i
+      integer j
       integer ibio
 !
 ! --- -------------------------------------------------
@@ -14,33 +21,33 @@
       integer, parameter :: itermax=3    ! number of iterations
       integer, parameter :: mxsubs=8     ! max number of substrates - real number must be less than sbio
       integer, parameter :: mxproc=20    ! more than mxsubs
-      integer, parameter :: mxgene=25	   !max space alloted for genes
-      real, save :: chldel               ! number of days to lag chlorophyll
-      real, save :: rivdin               ! river DIN to input
-      real, save :: rivtss               ! river tss to input
-      real, save :: rivdetrs             ! river small detritus to input
-      real, save :: rivdetrl             ! river large detritus to input
-      real, save :: rivdon(mxsubs)       ! river organic matter to input
-      real, save :: alpha(mxsubs)        ! uptake sent to O and IO nuts
-      real, save :: alphao(mxsubs)       ! nonassimilated to each kind of DOM
-      real, save :: alphanh4			       ! uptake sent to IO and O nuts in nitrification
-      real, save :: ae(mxsubs)           ! assim efficiency for each substrate
-      real, save :: aei(mxsubs)          ! 1.- assim efficiency for each substrate
-      real, save :: respi(mxsubs)        ! growth efficiency for each substrate
-      real, save :: ga(mxsubs)           ! excretion partitioning to NH4
-      real, save :: gai(mxsubs)          ! excretion partitioning to DON
-      real, save :: betab                ! partitioning of dead bio to detritus
-      real, save :: betap                ! partitioning of dead bio to NH4
-      real, save :: betai                ! partitioning of dead bio to don
-      real, save :: bigdet               ! cutoff for bug size to go to big det
-      real, save :: mxldet               ! max large det conc for sinking fraction
-      real, save :: betasl(mxtrcr)       ! fraction of dead bug going to small det
-      real, save :: betarl(mxsubs)       ! fraction of dead bug going to each dom sum to 1
-      real, save :: domtocdom(mxsubs)    ! fraction of dom that is colored
-      real, save :: bp(mxproc,mxtrcr)    ! array of parameters read in for each bio
-      real, save :: trans(mxgene)		     ! transcription number for each gene
-      real, save :: aggreg			         ! aggregation rate for small detritus to large
-      real, save :: gmax			           ! fraction of community biomass below which an organism is removed
+      integer, parameter :: mxgene=25    !max space alloted for genes
+      real chldel               ! number of days to lag chlorophyll
+      real rivdin               ! river DIN to input
+      real rivtss               ! river tss to input
+      real rivdetrs             ! river small detritus to input
+      real rivdetrl             ! river large detritus to input
+      real rivdon(mxsubs)       ! river organic matter to input
+      real alpha(mxsubs)        ! uptake sent to O and IO nuts
+      real alphao(mxsubs)       ! nonassimilated to each kind of DOM
+      real alphanh4            ! uptake sent to IO and O nuts in nitrification
+      real ae(mxsubs)           ! assim efficiency for each substrate
+      real aei(mxsubs)          ! 1.- assim efficiency for each substrate
+      real respi(mxsubs)        ! growth efficiency for each substrate
+      real ga(mxsubs)           ! excretion partitioning to NH4
+      real gai(mxsubs)          ! excretion partitioning to DON
+      real betab                ! partitioning of dead bio to detritus
+      real betap                ! partitioning of dead bio to NH4
+      real betai                ! partitioning of dead bio to don
+      real bigdet               ! cutoff for bug size to go to big det
+      real mxldet               ! max large det conc for sinking fraction
+      real betasl(PTRACERS_num)       ! fraction of dead bug going to small det
+      real betarl(mxsubs)       ! fraction of dead bug going to each dom sum to 1
+      real domtocdom(mxsubs)    ! fraction of dom that is colored
+      real bp(mxproc,PTRACERS_num)    ! array of parameters read in for each bio
+      real trans(mxgene)         ! transcription number for each gene
+      real aggreg              ! aggregation rate for small detritus to large
+      real gmax                ! fraction of community biomass below which an organism is removed
 
       real, parameter :: rs  = 0.6            ! fraction of incident Q that is longwave
       real, parameter :: rs2 = 0.4            ! 580 nm spectral division in pslight
@@ -53,25 +60,25 @@
       real, parameter :: ntochl = 1.59        !nitrogen to chl conversion
       real, parameter :: basalmet = 1.1e-7    ! .01 per day basal metabolism
 
-      integer, save :: ichl                 ! place for chlorophyl
-      integer, save :: icdm                 ! place for cdom estimate
-      integer, save :: inh4e                ! place for nitrification
-      integer, save :: ilight               ! place for light
-      integer, save :: ihet                 ! growth dure to het
-      integer, save :: iauto                ! growth due to autotrophy
-      integer, save :: ino3,					      ! growth due to nitrate
-      integer, save :: isflxb,					    ! sinking flux due to n2-fix
-      integer, save :: ibug,				        ! bug ID location
-      integer, save :: imot,					      ! gene for motility/particle attach
-      integer, save :: irhod,					      ! gene for rhodopsin
-      integer, save :: ngene,					      ! number of genes
-      integer, save :: gene(mxgene,mxtrcr)	! gene array
+      integer ichl                 ! place for chlorophyl
+      integer icdm                 ! place for cdom estimate
+      integer inh4e                ! place for nitrification
+      integer ilight               ! place for light
+      integer ihet                 ! growth dure to het
+      integer iauto                ! growth due to autotrophy
+      integer ino3                ! growth due to nitrate
+      integer isflxb              ! sinking flux due to n2-fix
+      integer ibug                ! bug ID location
+      integer imot                ! gene for motility/particle attach
+      integer irhod               ! gene for rhodopsin
+      integer ngene               ! number of genes
+      integer gene(mxgene,PTRACERS_num) ! gene array
 
       ! - process places
-      integer, parameter :: jbug = 1					      ! bug number
+      integer, parameter :: jbug = 1                ! bug number
       integer, parameter :: jsink = 2               ! place for sinking rate
       integer, parameter :: jmaxgrow = 3            ! place for max growth
-      integer, parameter :: jdin = 4					      ! DIN uptake
+      integer, parameter :: jdin = 4                ! DIN uptake
       integer, parameter :: jnh4 = 5                ! ammonium uptake
       integer, parameter :: jdetrs = 6              ! small detritus
       integer, parameter :: jdetrl = 7              ! large detritus
@@ -83,28 +90,28 @@
       integer, parameter :: jorgs = 13              ! place to start organic subs
       integer, parameter :: jorge = 14              ! place to end organics
       integer, parameter :: jphoto = 15             ! place for photosynthesis
-      integer, parameter :: jphotonh4e = 16				  ! photoinhibition of nitrification
+      integer, parameter :: jphotonh4e = 16         ! photoinhibition of nitrification
       integer, parameter :: jsubf = 17              ! penalty for substrate uptake to account for extra N need
-      integer, parameter :: jbasal = 18				      ! basal metabolism
+      integer, parameter :: jbasal = 18             ! basal metabolism
 
-      integer, save :: sbio                ! begin live biology
-      integer, save :: dtb                 ! bio timestep
-      integer, save :: irein 		 	         ! how often to reinitialize
-      integer, save :: itss			           ! index for sediment
-      integer, save :: idin			           ! index for DIN
-      integer, save :: inh4			           ! index for Ammonium
-      integer, save :: idetrs			         ! index for small detritus
-      integer, save :: idetrl			         ! index for large detritus
-      integer, save :: sorg			           ! index for start of dissolved organic components
-      integer, save :: eorg			           ! index for end of dissolved organic components
-      integer, save :: in2			           ! index for nitrogen fixation
-      integer, save :: nbproc              ! number of "processes" with coefficients
-      integer, save :: bpi(mxproc,mxtrcr)  ! array of binary on offs for each bio process
-      integer, save :: itt(30)             !array indices for outputting transcription
-      integer, save :: jtt(30)             !array indices for outputting transcription
-      integer, save :: ntt                 !array indices for outputting transcription
-      integer, save :: nbb                 !array indices for outputting transcription
-      integer, save :: idiag               !array indices for outputting transcription
+      integer sbio                ! begin live biology
+      integer dtb                 ! bio timestep
+      integer irein                ! how often to reinitialize
+      integer itss                 ! index for sediment
+      integer idin                 ! index for DIN
+      integer inh4                 ! index for Ammonium
+      integer idetrs               ! index for small detritus
+      integer idetrl               ! index for large detritus
+      integer sorg                 ! index for start of dissolved organic components
+      integer eorg                 ! index for end of dissolved organic components
+      integer in2                ! index for nitrogen fixation
+      integer nbproc              ! number of "processes" with coefficients
+      integer bpi(mxproc,PTRACERS_num)  ! array of binary on offs for each bio process
+      integer itt(30)             !array indices for outputting transcription
+      integer jtt(30)             !array indices for outputting transcription
+      integer ntt                 !array indices for outputting transcription
+      integer nbb                 !array indices for outputting transcription
+      integer idiag               !array indices for outputting transcription
 
       ! - model params
       integer i
@@ -123,19 +130,19 @@
       integer ihour
 
       ! temp bio arrays
-      real bm(mxtrcr)
-      real bn(mxtrcr)
-      real bi(mxtrcr)
-      real, save :: growth(mxtrcr,mxsubs+3) ! temp substrate sums
+      real bm(PTRACERS_num)
+      real bn(PTRACERS_num)
+      real bi(PTRACERS_num)
+      real growth(PTRACERS_num,mxsubs+3) ! temp substrate sums
 
       ! arrays for sinking
-      real sink(kdm+1)
-      real bf(kdm+1)
-      real dps(kdm+1)
-      real rf
+      real sink(Nr+1)
+      real bf(Nr+1)
+      real dps(Nr+1)
+      !real rf ! Already defined in MITgcm?
       real bsl
 
-      real bsum(idm,jdm,kdm) ! sum of all bio
+      real bsum(Nx,Ny,Nr) ! sum of all bio
 
       ! - light vars
       real radfl        ! radiation
@@ -144,22 +151,22 @@
       real riob         ! blue
       real z1           ! depths of top of layer
       real z2           ! depths of bottom of later
-      real rlt(kdm)     ! avg light in layer
-      real ll(mxtrcr)	  ! light limitation
-      real, save :: pkr
-      real, save :: pkb
-      real, save :: kr      ! red light param
-      real, save :: kb      ! blue light params
-      real, save :: cdkr    ! cdom K
-      real, save :: sedkr   ! sediment red K
-      real, save :: sedkb   ! sediment blue K
-      real, save :: cdkb
-      real, save :: a_CDM
-      real, save :: a_sed   ! absorption for sed and cdom
+      real rlt(Nr)      ! avg light in layer
+      real ll(PTRACERS_num)   ! light limitation
+      real pkr
+      real pkb
+      real kr      ! red light param
+      real kb      ! blue light params
+      real cdkr    ! cdom K
+      real sedkr   ! sediment red K
+      real sedkb   ! sediment blue K
+      real cdkb
+      real a_CDM
+      real a_sed   ! absorption for sed and cdom
 
       ! climate change
-      real, save :: airtinc
-      real, save :: precipinc  ! increment for air t and precip
+      real airtinc
+      real precipinc  ! increment for air t and precip
 
       ! - misc
       logical llw
@@ -179,382 +186,37 @@
       real ao
       character*48 bionm
 
-      !!!
-      !!! Section 1 - Initialization
-      !!!
-      if (ibio.lt.0) then !initialize only
-        i = -ibio
-        dtb = delt1
-
-        call blkini(k, 'biotyp')
-
-!        if (k.ne.100) then
-!          if (mnproc.eq.1) then
-!            write(lp,'(/ a /)') 'error - biotyp must be 100'
-!            call flush(lp)
-!          endif ! 1st tile
-
-!          call xcstop('(trcini)')
-!
-!          stop '(trcini)'
-!        endif ! k.ne.100
-
-        call blkini(addtracr , 'addtra')
-        call blkini(ntt ,      'ntt   ')
-
-        do io = 1,ntt
-          call blkini(itt(io) ,  'itt   ')
-          call blkini(jtt(io) ,  'jtt   ')
-        enddo !io
-
-        if (mnproc.eq.1) then
-          write(lp,*) 'dtime ', dtime
-          call forday(dtime,yrflag, iyear,iday,ihour)
-          nbb = ntracr
-          bionm = "bioloc.out"
-          open(unit=uoff+109,file=trim(flnminp)//bionm,status='new')
-        endif !mnproc
-
-        ! - read paramters
-        ichl   = ntracr+1       ! place for chlorophyl
-        icdm   = ntracr+2       ! place for cdom estimate
-        ilight = ntracr+3       ! place for light
-        iauto  = ntracr+4       ! growth due to photosynthesis
-        ihet   = ntracr+5		! growth due to heterotrophy
-        ino3   = ntracr+6       ! growth due to nitrate
-        isflxb = ntracr+7		! sinking flux
-        ibug   = ntracr+7		! place to write transcription
-
-        call blkini(itss     , 'itss  ')
-        call blkini(idin     , 'idin  ')
-        call blkini(inh4     , 'inh4  ')
-        call blkini(idetrs   , 'idetrs')
-        call blkini(idetrl   , 'idetrl')
-        call blkini(sorg     , 'sorg  ')
-        call blkini(eorg     , 'eorg  ')
-        call blkini(in2      , 'in2   ')
-        call blkini(imot     , 'imot  ')
-        call blkini(irhod    , 'irhod ')
-        call blkini(sbio     , 'sbio  ')
-
-        inh4e = sbio                !place for nitrification
-
-        call blkini(nbproc   , 'nproc ')
-        call blkinr(chldel   , 'chldel','(a6," =",f10.4," ")')
-
-        chldel = 1.0 / (chldel*dtb)
-
-        call blkinr(a_CDM    , 'a_CDM ','(a6," =",f10.4," ")')
-        call blkinr(a_sed    , 'a_CDM ','(a6," =",f10.4," ")')
-        call blkinr(rivtss   , 'rivtss','(a6," =",f10.4," ")')
-        call blkinr(rivdin   , 'rivDIN','(a6," =",f10.4," ")')
-        call blkinr(rivdetrs , 'rivdts','(a6," =",f10.4," ")')
-        call blkinr(rivdetrl , 'rivdtl','(a6," =",f10.4," ")')
-
-        do io = sorg,eorg
-          call blkinr(ao      , 'rivdon','(a6," =",f10.4," ")')
-          rivdon(io) = ao
-        enddo !io
-
-        do io = 1,sbio
-          call blkinr(ao    , 'alpha ','(a6," =",f10.4," ")')
-          alpha(io) = ao
-        enddo !io
-
-        do io = sorg,eorg
-          call blkinr(ao     , 'alphao','(a6," =",f10.4," ")')
-          alphao(io) = ao
-        enddo !io
-
-        call blkinr(alphanh4 , 'alpha4','(a6," =",f10.4," ")')
-
-        do io = 1,sbio
-          call blkinr(ao     , 'aeo   ','(a6," =",f10.4," ")')
-          ae(io) = ao
-          aei(io) = 1.-ao
-        enddo !io
-
-        do io = 1,sbio
-          ! in2 is 1, inh4e is sbio
-          call blkinr(ao     , 'resp  ','(a6," =",f10.4," ")')
-          respi(io) = ao
-          bioid(io) = io
-        enddo !io
-
-        do io = 1,sbio
-          call blkinr(ao     , 'ga    ','(a6," =",f10.4," ")')
-          ga(io) = ao
-          gai(io) = 1.0-ao
-        enddo !io
-
-        call blkinr(betab     , 'betab ','(a6," =",f10.4," ")')
-        call blkinr(betap     , 'betap ','(a6," =",f10.4," ")')
-
-        betai = 1.0 - betap - betab
-
-        do io = sorg,eorg
-          call blkinr(ao     , 'betarl','(a6," =",f10.4," ")')
-          betarl(io) = ao
-        enddo !io
-
-        call blkinr(bigdet   , 'bigdet','(a6," =",f10.4," ")')
-        call blkinr(mxldet   , 'mxldet','(a6," =",f10.4," ")')
-        call blkinr(bsl       , 'betasl','(a6," =",f10.4," ")')
-
-        do io = sorg,eorg
-          call blkinr(ao     , 'cdom  ','(a6," =",f10.4," ")')
-          domtocdom(io) = ao
-        enddo !io
-
-        do io = 1,sbio-1
-          call blkinr(ao     , 'sink  ','(a6," =",f10.4," ")')
-          bp(jsink,io)=ao/dsec
-        enddo !io
-
-        call blkinr(aggreg   , 'aggreg','(a6," =",f10.4," ")')
-
-        aggreg = aggreg/dsec
-
-        call blkinr(gmax     , 'gmax  ','(a6," =",f10.4," ")')
-        call blkini(irein    , 'irein ') !timesteps to reinitialize
-        call blkini(idiag    , 'idiag ') !timesteps to reinitialize
-        call blkinr(airtinc     , 'airt  ','(a6," =",f10.4," ")')
-        call blkinr(precipinc     ,    'pinc  ','(a6," =",f10.4," ")')
-
-        airtinc = airtinc / (100.d0*365.d0*86400.d0)
-        precipinc = precipinc / (100.d0*365.d0*86400.d0)
-
-        close(unit=uoff+99)
-
-        open(unit=uoff+99,file=trim(flnminp)//'bio100.input')
-
-        call blkini(ngene     , 'ngene ') !gene transcript type
-
-        do io = 2,sbio-1
-          betasl(io)=1.
-        enddo !io
-
-        betasl(idetrl)=.5
-
-        do inb = sbio,ntracr
-          do io = 1,ngene
-            call blkini(l     , 'gene  ') !gene transcript type
-            gene(io,inb)=l
-          enddo !io
-          do io = 1,nbproc
-            call blkinr(ao    ,'bproc ','(a6," =",e14.5," ")')
-            bp(io,inb)=ao
-            call blkini(l     ,'bproci')
-            bpi(io,inb)=l
-          enddo   !io
-          nbb = max(nbb,int(bp(1,inb)))
-  !        betasl(inb)=max(.3,((bigdet*bp(jsize,inb)+(.9-bigdet))))
-          betasl(inb) = 1.
-          bioid(inb)=bp(1,inb)
-          if(bp(jsize,inb).gt.bigdet) then
-            betasl(inb)=bsl
-          endif
-        enddo	!inb
-        close(unit=uoff+99)
-        return
-      endif !ibio.lt.0
-      !!! End Section 1 - Initialization
-
-      !!!
-      !!! Section 2 - Reseed if necessary
-      !!!
-      ! Count biomass for each organism (bsum), check if it's a small
-      ! fraction of total growth everywhere, reseed everywhere if
-      ! necessary.
-
-      ! - vic add false climate forcing increment at each time step
-      !teinc = teinc + airtinc
-      !pinc = pinc + precipinc
-
-      margin = 0  ! no horizontal derivatives
-	    itbio = 18
-      ldiag = .false.
-      lbioloc = .false.
-      if (mod(nstep,idiag) .lt. 1) then
-        ldiag = .true.
-      endif
-
-      ! Section 2.1 - Get biomass at each location
-      do j=1-margin,jj+margin
-        do l=1,isp(j)
-          do i=max(1-margin,ifp(j,l)),min(ii+margin,ilp(j,l))
-            do k = 1,kk
-              bsum(i,j,k)=0.
-              do inb = sbio, ntracr
-                bsum(i,j,k) = bsum(i,j,k)+tracer(i,j,k,n,inb)
-              enddo ! inb
-            enddo !k
-		      enddo !i
-		    enddo !l
-      enddo !j
-
-      ! Section 2.2 - Test for bio reinitialization
-      if (mod(nstep,irein).lt.1 .and. gmax.gt.0) then
-        ! - fast forward to start of new bugs...
-        open(unit=uoff+99,file=trim(flnminp)//'bio100.rein')
-        call blkini(ngene     , 'ngene ') !gene transcript type
-
-        do inb = sbio,nbb
-          do io = 1,ngene
-            call blkini(l     , 'gene  ') !gene transcript type
-          enddo !io
-          do io = 1,nbproc
-            call blkinr(ao    ,'bproc ','(a6," =",e14.5," ")')
-            call blkini(l     ,'bproci')
-          enddo   !io
-        enddo !inb
-
-        ! Section 2.2.1 - Reseeding
-        ! Find tracers that are a small fraction gmax of the community
-        ! Save index of cell where the maximum relative tracer is
-        ! present. Then check if it is less than gmax, reinitialize if
-        ! not.
-        do inb = sbio, ntracr
-          !for organism inb
-
-          ! Section 2.2.1.1 - Max relative contribution
-          t1=0
-          do j=1-margin,jj+margin
-            do l=1,isp(j)
-              do i=max(1-margin,ifp(j,l)),min(ii+margin,ilp(j,l))
-                do k = 1,kk
-                  !for each layer
-                  if (bsum(i,j,k).gt.1.e-8) then
-                    !if there is real biomass, then
-                    t2 = tracer(i,j,k,n,inb)/bsum(i,j,k)
-                    t1 = max(t2,t1)
-                    if (t1 .eq. t2) then
-                      !save index of maximum contribution of organism
-                      t4 = i
-                      t5 = j
-                      t6 = k
-                    endif !t1=t2
-                  endif ! bsum
-                enddo !k
-		          enddo !i
-		        enddo !l
-          enddo !j
-
-          ! Section 2.2.1.2 - Reseed and adjust
-          ! Reseed with new organism if max relative growth is less
-          ! than gmax. First sum affected biomass and and reseed at 1.5
-          ! times gmax. Rescale all organisms in order to conserve
-          ! mass.
-          if (t1.le.gmax) then
-            ! - reinitialize bio - add new organism
-            t2 = bp(1,inb)
-            do io = 1,ngene
-              call blkini(l     , 'gene  ') !gene transcript type
-              gene(io,inb)=l
-            enddo !io
-            do io = 1,nbproc
-              call blkinr(ao    ,'bproc ','(a6," =",e14.5," ")')
-              bp(io,inb)=ao
-              call blkini(l     ,'bproci')
-              bpi(io,inb)=l
-            enddo   !io
-
-            ! - Adjust biomass for new biomass addition
-            do j=1-margin,jj+margin
-              do l=1,isp(j)
-                do i=max(1-margin,ifp(j,l)),min(ii+margin,ilp(j,l))
-                  do k = 1,kk
-                    t3 = tracer(i,j,k,n,inb)
-                    tracer(i,j,k,n,inb) = (bsum(i,j,k)*1.5*gmax)
-                    tracer(i,j,k,m,inb) = tracer(i,j,k,n,inb)
-                    !t3 = fractional change to biomass
-                    t3 = (tracer(i,j,k,n,inb)-t3)/bsum(i,j,k)
-
-                    ! Loop through inb and take away mass from other
-                    ! groups proportional to their biomass here...
-                    ! ie. we know tracer(inb), and we know bsum, so,
-                    ! each bug/bsum times tracer(inb) would conserve
-                    ! mass.
-                    do jo = sbio,ntracr
-                       tracer(i,j,k,n,jo)=tracer(i,j,k,n,jo)-
-     &                    (t3*tracer(i,j,k,n,jo))
-                    enddo !jo
-                  enddo !k
-		            enddo !i
-		          enddo !l
-            enddo !j
-
-            betasl(inb)=1.
-            if(bp(jsize,inb).gt.bigdet) then
-              betasl(inb)=bsl
-            endif
-            nbb=nbb+1
-            bioid(inb) = bp(1,inb)
-
-            if (mnproc .eq. 1 ) then
-              write(lp,*) nstep,' swapped old bug',int(t2),
-     &        ' for',int(bp(1,inb)),t4,t5,t6
-            endif   !mnproc
-
-          endif !t1<=gmax
-        enddo ! inb
-
-        close(unit=uoff+99)
-        
-        ! write over bio100.input file
-        if (mnproc.eq.1) then
-          open(unit=uoff+108,file=trim(flnminp)//'bio100.input',
-     &       status='unknown')
-          write(uoff+108,'(i11,a23)') ngene, " 'ngene ' = gene params"
-          do inb = sbio,ntracr
-            do io = 1,ngene
-              write(uoff+108,'(i11,a,i4)') gene(io,inb),
-     &           " 'gene ' = gene params for ",inb
-            enddo !io
-            do io = 1,nbproc
-              write(uoff+108,'(e14.5,a33,i5,a5,f5.0)') bp(io,inb),
-     &        " 'bproc ' = bio params  for slot ",inb,
-     &        " bug ",bp(1,inb)
-              write(uoff+108,'(i11,a23,i5)') bpi(io,inb),
-     &        " 'bproci' = bio onoff  for bug ",inb
-            enddo   !io
-          enddo   !inb
-          close(uoff+108)
-        endif ! mnproc
-      endif ! reinitialize mod nstep,rein
-      ! End section 2 - Reseeding
 
       !!!
       !!! Section 3 - Biology
       !!!
-      do j=1-margin,jj+margin
-        do l=1,isp(j)
-          do i=max(1-margin,ifp(j,l)),min(ii+margin,ilp(j,l))
+      do l=1,Nr
+        do i=max(1-margin,ifp(j,l)),min(ii+margin,ilp(j,l))
 
-            !!!
-            !!! Section 3.1 -
-            !!!
-            if (jj .gt. 1) then
-              radfl = radflx(i,j,l0)*w0 + radflx(i,j,l1)*w1
+          !!!
+          !!! Section 3.1 -
+          !!!
+          if (jj .gt. 1) then
+            radfl = radflx(i,j,l0)*w0 + radflx(i,j,l1)*w1
      &           + radflx(i,j,l2)*w2 + radflx(i,j,l3)*w3
 
-              if (flxflg.ne.3) then
-                radfl = sswflx(i,j)
-              endif  !flxflg
+            if (flxflg.ne.3) then
+              radfl = sswflx(i,j)
+            endif  !flxflg
 
-              rior = par*radfl*rs2           !Red fraction
-              riob = par*radfl*(1.0-rs2)      !Blue fraction
-              z1  = 0
+            rior = par*radfl*rs2           !Red fraction
+            riob = par*radfl*(1.0-rs2)      !Blue fraction
+            z1  = 0
 
-              do k=1,kk
-                if (riob.gt.0.001) then
-                  z2 = dp(i,j,k,n)/onem
-                  pkr = 0.
-                  pkb =  wk    * ntochl*max(0.,tracer(i,j,k,n,ichl))
-                  cdkr = a_CDM * max(0.,tracer(i,j,k,n,icdm))
-                  cdkb = a_CDM * max(0.,tracer(i,j,k,n,icdm))
-                  sedkr = a_sed * max(0.,tracer(i,j,k,n,itss))
-                  sedkb = a_sed * max(0.,tracer(i,j,k,n,itss))
+            do k=1,kk
+              if (riob.gt.0.001) then
+                z2 = dp(i,j,k,n)/onem
+                pkr = 0.
+                pkb =  wk    * ntochl*max(0.,tracer(i,j,k,n,ichl))
+                cdkr = a_CDM * max(0.,tracer(i,j,k,n,icdm))
+                cdkb = a_CDM * max(0.,tracer(i,j,k,n,icdm))
+                sedkr = a_sed * max(0.,tracer(i,j,k,n,itss))
+                sedkb = a_sed * max(0.,tracer(i,j,k,n,itss))
 
                   !Calc. Kt (water + phyto + CDOM) for red and blue
                   kr = wkr2 + pkr + cdkr + sedkr
@@ -1188,53 +850,16 @@
                 do inb = 1,ngene
                   tracer(i,j,k,n,ibug+inb)=trans(inb)
                 enddo
-                endif !dp gt 0.1*onem
-              enddo !k
-            enddo !i
-          enddo !l
-        enddo !j
-        ! End Section 3 - Biology
-
-!$OMP END PARALLEL DO
-        !!!
-        !!! Section 4 - Sinking
-        !!!
-        llw=.false.
-        do j=1-margin,jj+margin
-          do l=1,isp(j)
-            do i=max(1-margin,ifp(j,l)),min(ii+margin,ilp(j,l))
-          
-              do k = 1,kk
-                dps(k) = (max(((p(i,j,k+1)-p(i,j,1))*qonem),.1))/dtb
-                tracer(i,j,k,n,isflxb)=0.
-              enddo
-          
-              do inb = 1,ntracr
-          
-              do k = 1,kk+1
-                sink(k)=bp(jsink,inb)*onem*dtb
-                bf(k)= tracer(i,j,k,n,inb)
-              enddo
-            
-              errcon1=.false.
-            
-              if (sink(1).gt.0) then
-                call advc1d(i,j,n,inb,sink,llw,errcon1,.false.)
-                t2 = 0
-                do k = 1,kk
-                  t1= (bf(k)- tracer(i,j,k,n,inb))*dps(k)+t2
-                  t2 = t1
-                  tracer(i,j,k,n,isflxb)=tracer(i,j,k,n,isflxb)+t1
-                enddo
-              endif
-          
-            enddo !inb
+              endif !dp gt 0.1*onem
+            enddo !k
           enddo !i
         enddo !l
-      enddo !j
-      ! End Section 4 - Sinking
+
+      ! End Section 3 - Biology
+
+!$OMP END PARALLEL DO
       return
-      end subroutine trcupd_100
+      end subroutine genome_biology
       !====================================================
       ! ======== END ROCA =================================
       !====================================================
